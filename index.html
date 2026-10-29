@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PPVG MAPS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Manrope:wght@500;700;800&display=swap">
+<style>body{margin:0}</style>
+<style>
+/* Layout: navy hero with search, mode switch, floor plan card, directions / game card.
+   Palette follows the PPVG MAPS slides: navy, school blue, signal red. */
+:root{
+  --bg:#eef3fb; --surface:#ffffff; --ink:#14284b; --muted:#5a6b8c;
+  --navy:#15294f; --navy-ink:#ffffff;
+  --blue:#236fd2; --blue-soft:#dce8fa; --room:#e6eefa; --room-line:#b3c8e8;
+  --red:#dc3741; --red-soft:#fbe1e3; --green:#1f9d6b; --corr:#f6f8fd;
+  --shadow:0 6px 22px rgba(20,40,75,.10);
+  --display:'Baloo 2','Manrope',system-ui,sans-serif; --font:'Manrope',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c162b; --surface:#16264a; --ink:#eaf0fc; --muted:#9db0d3;
+  --navy:#1b3263; --blue:#5b9bf0; --blue-soft:#243d6b; --room:#213762; --room-line:#3a5a96;
+  --red:#ff6670; --red-soft:#5a2a3a; --green:#43d19b; --corr:#1a2c52; --shadow:0 6px 22px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c162b; --surface:#16264a; --ink:#eaf0fc; --muted:#9db0d3;
+  --navy:#1b3263; --blue:#5b9bf0; --blue-soft:#243d6b; --room:#213762; --room-line:#3a5a96;
+  --red:#ff6670; --red-soft:#5a2a3a; --green:#43d19b; --corr:#1a2c52; --shadow:0 6px 22px rgba(0,0,0,.35); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;
+  padding-block:16px 36px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.app{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+
+.hero{position:relative;background:var(--navy);color:var(--navy-ink);border-radius:26px;padding:22px 22px 20px;box-shadow:var(--shadow)}
+.deco{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none}
+.deco i{position:absolute;border-radius:50%}
+.deco .a{width:120px;height:120px;right:-24px;top:-30px;background:var(--blue)}
+.deco .b{width:56px;height:56px;right:96px;top:70px;background:var(--red)}
+.deco .c{width:26px;height:26px;right:30px;top:104px;background:#dce8fa}
+.hero>*:not(.deco){position:relative}
+.hero h1{font-family:var(--display);font-weight:800;font-size:38px;line-height:1;margin:0;letter-spacing:.01em}
+.hero h1 span{color:#ff7078}
+.hero .tag{margin:6px 0 16px;color:#c3d3f0;max-width:30ch}
+.search{position:relative}
+.search input{width:100%;font:inherit;font-weight:700;padding:15px 18px 15px 48px;border-radius:16px;border:0;background:#fff;color:#14284b}
+.search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);pointer-events:none}
+.search input:focus-visible{outline:3px solid #ff7078;outline-offset:2px}
+.results{position:absolute;z-index:20;left:0;right:0;top:100%;margin-top:8px;background:var(--surface);color:var(--ink);border-radius:16px;box-shadow:0 14px 34px rgba(10,20,50,.35);overflow:hidden;max-height:290px;overflow-y:auto}
+.res{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;font:inherit;font-weight:700;padding:13px 18px;border:0;background:none;color:var(--ink);cursor:pointer;border-bottom:1px solid var(--blue-soft)}
+.res:hover{background:var(--blue-soft)}.res small{color:var(--muted);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{font:inherit;font-weight:800;font-size:13px;padding:8px 14px;border-radius:999px;border:2px solid rgba(255,255,255,.28);background:transparent;color:#fff;cursor:pointer}
+.chip:hover{background:#fff;color:#14284b}
+
+.modes{display:flex;gap:6px;background:var(--surface);padding:6px;border-radius:18px;box-shadow:var(--shadow)}
+.mode{flex:1;font:inherit;font-family:var(--display);font-weight:800;font-size:17px;padding:10px 12px;border-radius:13px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.mode[aria-pressed="true"]{background:var(--blue);color:#fff}
+button:focus-visible,.rm:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+.plan{background:var(--surface);border-radius:24px;padding:16px;box-shadow:var(--shadow)}
+.planhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.tabs{display:flex;gap:8px}
+.tab{font:inherit;font-family:var(--display);font-weight:800;font-size:16px;padding:6px 16px;border-radius:12px;border:0;background:var(--blue-soft);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--red);color:#fff}
+.legend{display:flex;gap:12px;color:var(--muted);font-size:12px;font-weight:700;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend b{width:12px;height:12px;border-radius:4px;display:inline-block}
+.svgwrap{overflow-x:auto;border-radius:14px}
+svg.map{display:block;width:100%;min-width:600px;height:auto}
+.corr{fill:var(--corr)}
+.rm{cursor:pointer}
+.rm rect.bg{stroke:var(--room-line);stroke-width:2;transition:fill .2s}
+.rm.k-class rect.bg{fill:var(--room)}
+.rm.k-food rect.bg{fill:var(--red-soft)}
+.rm.k-lib rect.bg{fill:var(--blue-soft)}
+.rm.k-wc rect.bg{fill:var(--blue-soft)}
+.rm.k-hall rect.bg{fill:var(--red-soft)}
+.rm:hover rect.bg{stroke:var(--blue);stroke-width:3}
+.rm text{fill:var(--ink);font-family:var(--font);font-weight:800;font-size:15px;text-anchor:middle;pointer-events:none}
+.rm .ic{stroke:var(--ink);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;opacity:.75}
+.rm.sel rect.bg{fill:var(--red);stroke:var(--red)}
+.rm.sel text{fill:#fff}.rm.sel .ic{stroke:#fff;opacity:1}
+.rm.ok rect.bg{fill:var(--green);stroke:var(--green)}.rm.ok text{fill:#fff}
+.rm.bad{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.path{fill:none;stroke:var(--blue);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:2 12;animation:flow 1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-14}}
+.pin{fill:var(--blue)} .pinring{fill:none;stroke:var(--blue);stroke-width:3;opacity:.4}
+.lbl{fill:var(--muted);font-family:var(--font);font-weight:800;font-size:13px}
+.walker{fill:var(--red);stroke:#fff;stroke-width:3}
+@media (prefers-reduced-motion:reduce){.path,.rm.bad{animation:none}}
+
+.card{background:var(--surface);border-radius:24px;padding:20px 22px;box-shadow:var(--shadow)}
+.where{color:var(--red);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.card h2{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.1;margin:2px 0 12px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.stat{background:var(--blue-soft);border-radius:14px;padding:8px 14px;font-weight:800}
+.stat small{display:block;color:var(--muted);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:s}
+.steps li{display:flex;gap:12px;align-items:flex-start;counter-increment:s}
+.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;font-weight:800;display:grid;place-items:center;font-size:13px}
+.card p{margin:0;color:var(--muted)}
+.btn{font:inherit;font-family:var(--display);font-weight:800;font-size:17px;padding:10px 20px;border:0;border-radius:14px;background:var(--red);color:#fff;cursor:pointer;margin-top:14px}
+.starsrow{display:flex;gap:6px;margin:6px 0 10px}
+.msg{font-family:var(--display);font-weight:800;font-size:22px;margin:4px 0}
+.msg.good{color:var(--green)}.msg.bad{color:var(--red)}
+.note{font-size:12px;color:var(--muted);margin:0}
+
+.modes{display:grid;grid-template-columns:repeat(4,1fr)}
+.mode{font-size:15px;padding:10px 4px}
+.rm.from rect.bg{fill:var(--blue);stroke:var(--blue)}.rm.from text{fill:#fff}.rm.from .ic{stroke:#fff}
+.chip svg{vertical-align:-2px}
+.favbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;font:inherit;font-weight:800;padding:9px 16px;border-radius:999px;border:2px solid var(--room-line);background:transparent;color:var(--ink);cursor:pointer}
+.favbtn[aria-pressed="true"]{background:var(--blue-soft);border-color:#f5b400}
+.sec{font-family:var(--display);font-weight:800;font-size:19px;margin:22px 0 10px}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.badge{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;padding:10px 6px;border-radius:16px;background:var(--bg);opacity:.6}
+.badge.on{opacity:1;background:var(--blue-soft)}
+.badge b{font-size:13px}.badge small{font-size:11px;color:var(--muted);line-height:1.25}
+.lvls{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.lvl{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;font:inherit;padding:12px 16px;border-radius:16px;border:2px solid var(--room-line);background:var(--bg);color:var(--ink);cursor:pointer}
+.lvl b{font-family:var(--display);font-size:18px}.lvl span{color:var(--muted);font-size:13px;font-weight:700}
+.lvl:hover:not(:disabled){border-color:var(--blue)}.lvl:disabled{opacity:.55;cursor:not-allowed}
+.lstars{display:flex;gap:2px;flex-wrap:wrap}
+.timer{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.timer b{font-family:var(--display);font-size:26px;min-width:2ch;text-align:right}.timer span{color:var(--muted);font-weight:800}
+.tbar{flex:1;height:14px;border-radius:999px;background:var(--blue-soft);overflow:hidden}
+.tbar i{display:block;height:100%;background:var(--blue);border-radius:999px}
+.tbar i.low{background:var(--red)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.btn.ghost{background:var(--blue-soft);color:var(--ink)}
+.sched{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.lesson{display:flex;align-items:center;gap:12px}
+.lesson span{flex:none;width:76px;font-weight:800}
+.lesson select,.urlrow input{flex:1;min-width:0;font:inherit;font-weight:700;padding:11px 12px;border-radius:12px;border:2px solid var(--room-line);background:var(--surface);color:var(--ink)}
+.leg{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font:inherit;font-weight:800;font-size:13px;padding:7px 14px;border-radius:999px;border:0;background:var(--blue-soft);color:var(--ink);cursor:pointer;margin-left:88px}
+.leg:hover{background:var(--blue);color:#fff}
+.msg-note{margin-top:14px!important}
+.qrbox{width:min(340px,100%);margin:0 auto;background:#fff;padding:14px;border-radius:16px;box-shadow:inset 0 0 0 2px var(--room-line)}
+.qrbox svg{display:block;width:100%;height:auto}
+.urlrow{display:flex;flex-direction:column;gap:6px;font-weight:800;font-size:13px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--navy);color:#fff;padding:12px 20px;border-radius:999px;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:calc(100vw - 32px)}
+.toast[hidden]{display:none}
+.rm .sub{fill:var(--muted);font-size:13px;font-weight:700}
+.rm .tch{fill:var(--muted);font-size:12px;font-weight:600}
+.rm.sel .sub,.rm.from .sub,.rm.ok .sub,.rm.sel .tch,.rm.from .tch,.rm.ok .tch{fill:#fff}
+.subj{margin:-6px 0 12px!important;font-weight:800;color:var(--blue)!important}
+:root{--c-lang:#dce8fa;--c-sci:#d6f0e3;--c-hum:#fde8cf;--c-art:#ecdcfa}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--c-lang:#243d6b;--c-sci:#1d4a3d;--c-hum:#5a3f27;--c-art:#46306b}}
+:root[data-theme="dark"]{--c-lang:#243d6b;--c-sci:#1d4a3d;--c-hum:#5a3f27;--c-art:#46306b}
+.rm.c-lang rect.bg{fill:var(--c-lang)}.rm.c-sci rect.bg{fill:var(--c-sci)}.rm.c-hum rect.bg{fill:var(--c-hum)}.rm.c-art rect.bg{fill:var(--c-art)}
+.rm.sel rect.bg{fill:var(--red);stroke:var(--red)}.rm.from rect.bg{fill:var(--blue);stroke:var(--blue)}.rm.ok rect.bg{fill:var(--green);stroke:var(--green)}
+.rm{animation:fadein .3s ease-out backwards;transition:transform .15s}
+.rm:hover{transform:translateY(-3px)}
+@keyframes fadein{from{opacity:0}}
+.rm.bad{animation:shake .4s}
+.hero .tag{margin:6px 0 10px;max-width:21ch}
+.rank{display:flex;width:fit-content;align-items:center;gap:6px;background:rgba(255,255,255,.14);padding:5px 12px;border-radius:999px;font-weight:800;font-size:12px;margin:0 0 16px}
+.hero>.mascot{position:absolute;right:22px;top:44px;width:84px;animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-7px)}}
+.say{display:flex;gap:12px;align-items:center;background:var(--blue-soft);border-radius:18px;padding:10px 14px;margin-bottom:16px}
+.say .mini{flex:none;width:38px}.say .mini svg{display:block;width:100%;height:auto}
+.card .say p{color:var(--ink);font-weight:700;margin:0}
+.conf{position:fixed;width:9px;height:14px;border-radius:2px;pointer-events:none;z-index:60}
+.chip,.btn,.lvl,.mode,.tab{transition:transform .12s,background .15s}
+.btn:active,.lvl:active,.chip:active{transform:scale(.96)}
+@media (prefers-reduced-motion:reduce){.rm,.hero>.mascot{animation:none}.rm{transition:none}}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header class="hero">
+    <div class="deco" aria-hidden="true"><i class="a"></i></div>
+    <div class="mascot" id="mascot" aria-hidden="true"></div>
+    <h1>PPVG <span>MAPS</span></h1>
+    <p class="tag" id="greet"></p>
+    <div class="rank" id="rank"></div>
+    <div class="search">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14284b" stroke-width="2.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+      <input id="q" type="search" placeholder="Kabinetas, pvz. 204 ar valgykla" autocomplete="off" aria-label="Ieškoti kabineto">
+      <div id="results" class="results" hidden></div>
+    </div>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div class="modes" role="group" aria-label="Režimas">
+    <button class="mode" id="m-find" aria-pressed="true">Kelias</button>
+    <button class="mode" id="m-sched" aria-pressed="false">Pamokos</button>
+    <button class="mode" id="m-game" aria-pressed="false">Žaidimas</button>
+    <button class="mode" id="m-qr" aria-pressed="false">QR</button>
+  </div>
+
+  <section class="plan" id="plan" aria-label="Mokyklos planas">
+    <div class="planhead">
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="legend"><span><b style="background:var(--c-lang)"></b>Kalbos</span><span><b style="background:var(--c-sci)"></b>Tiksliniai ir gamta</span><span><b style="background:var(--c-hum)"></b>Socialiniai</span><span><b style="background:var(--c-art)"></b>Menai</span></div>
+    </div>
+    <div class="svgwrap"><svg class="map" id="svg" viewBox="0 0 800 400" role="img" aria-label="Aukšto planas"></svg></div>
+  </section>
+
+  <section class="card" id="card" aria-live="polite"></section>
+  <div id="toast" class="toast" role="status" hidden></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+// Rooms are generated from PLAN. Edit it to match the real school.
+// Item: [label, name, relative width, keywords, kind]. kind: class | food | lib | wc | hall
+const PLAN = {
+  1: {
+    top:    [['Raštinė','Raštinė',1.1,'sekretoriatas','class'],['Direktorius','Direktoriaus kabinetas',1.2,'vadovas','class'],['Biblioteka','Biblioteka',1.6,'knygos skaitykla','lib'],['Aktų salė','Aktų salė',1.6,'renginiai salė','hall']],
+    bottom: [['Valgykla','Valgykla',2,'maistas pietūs','food'],['Rūbinė','Rūbinė',1.2,'striukės','class'],['108','108 kabinetas',1,'','class'],['WC','Tualetai',0.8,'wc tualetas','wc']]
+  },
+  2: {
+    top:    [['201','201 kabinetas',1,'','class'],['202','202 kabinetas',1,'','class'],['203','203 kabinetas',1,'','class'],['204','204 kabinetas',1,'','class']],
+    bottom: [['205','205 kabinetas',1,'','class'],['206','206 kabinetas',1,'','class'],['207','207 kabinetas',1,'','class'],['WC','Tualetai',0.6,'wc tualetas','wc']]
+  },
+  3: {
+    top:    [['301','301 kabinetas',1,'','class'],['302','302 kabinetas',1,'','class'],['303','303 kabinetas',1,'','class'],['304','304 kabinetas',1,'','class']],
+    bottom: [['305','305 kabinetas',1,'','class'],['306','306 kabinetas',1,'','class'],['Informatika','Informatikos kabinetas',1.4,'kompiuteriai it','class'],['WC','Tualetai',0.6,'wc tualetas','wc']]
+  }
+};
+const X0=20,X1=700,CY=200,STAIRS_X=745;
+const rooms=[];
+for(const f of Object.keys(PLAN)) for(const side of ['top','bottom']){
+  const items=PLAN[f][side],tot=items.reduce((s,i)=>s+i[2],0);let x=X0;
+  items.forEach(([label,name,w,kw,kind])=>{
+    const ww=(X1-X0)*w/tot;
+    rooms.push({id:f+side+label,floor:+f,side,label,name,kind,kw:(name+' '+kw+' '+label).toLowerCase(),x,y:side==='top'?20:230,w:ww,h:150,cx:x+ww/2,door:side==='top'?170:230});
+    x+=ww;
+  });
+}
+const $=s=>document.querySelector(s),NS='http://www.w3.org/2000/svg';
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e};
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const byId=id=>rooms.find(r=>r.id===id);
+// Subject taught in each room. Edit to match the real timetable.
+const SUBJECTS={'108':'Anglų k.','201':'Lietuvių k.','202':'Matematika','203':'Istorija','204':'Geografija','205':'Anglų k.','206':'Rusų k.','207':'Dailė','301':'Fizika','302':'Chemija','303':'Biologija','304':'Matematika','305':'Muzika','306':'Technologijos'};
+const SUBJ_CAT={'Anglų k.':'lang','Lietuvių k.':'lang','Rusų k.':'lang','Matematika':'sci','Fizika':'sci','Chemija':'sci','Biologija':'sci','Geografija':'hum','Istorija':'hum','Dailė':'art','Muzika':'art','Technologijos':'art'};
+// Teachers are made-up examples. Replace with the real names.
+const TEACHERS={'108':'R. Petraitienė','201':'J. Jonaitis','202':'A. Kazlauskienė','203':'M. Stankevičius','204':'L. Vaitkutė','205':'D. Šimkus','206':'I. Ivanova','207':'E. Pocienė','301':'T. Žukauskas','302':'N. Navickienė','303':'V. Butkus','304':'S. Rimkutė','305':'G. Baranauskas','306':'K. Paulauskas','Informatika':'P. Mockus'};
+rooms.forEach(r=>{r.subject=SUBJECTS[r.label]||'';r.teacher=TEACHERS[r.label]||'';r.cat=SUBJ_CAT[r.subject]||(r.label==='Informatika'?'sci':'');r.kw+=' '+r.subject.toLowerCase()+' '+r.teacher.toLowerCase()});
+const classRooms=rooms.filter(r=>r.kind!=='wc');
+
+// saved progress (works without storage too)
+const store={favs:[],sched:['','','','','',''],unlocked:1,badges:[],best:{}};
+try{Object.assign(store,JSON.parse(localStorage.getItem('ppvg')||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem('ppvg',JSON.stringify(store))}catch(e){}};
+
+let floor=1,mode='find',route={from:null,to:null};
+
+/* ---------- badges ---------- */
+const BADGES={
+  first:['Pirmas žingsnis','Baik 1 lygį'],
+  blitz:['Žaibas','Rask kabinetą greičiau nei per 4 s'],
+  perfect:['Be klaidų','Gauk visas žvaigždes viename lygyje'],
+  scout:['Žvalgas','Baik 3 lygį'],
+  fan:['Mėgėjas','Pridėk mėgstamiausią vietą'],
+  planner:['Planuotojas','Įrašyk bent 5 pamokas']
+};
+let toastT;
+function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,2600)}
+function award(k){if(store.badges.includes(k))return;store.badges.push(k);save();updateRank();confetti(innerWidth/2,innerHeight/2,36);toast('Naujas ženkliukas: '+BADGES[k][0])}
+const starPath='M12 2l3 6.5 7 .8-5.2 4.8 1.5 7L12 17.5 5.7 21l1.5-7L2 9.3l7-.8z';
+const star=(on,s=30)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="${starPath}" fill="${on?'#f5b400':'none'}" stroke="${on?'#f5b400':'var(--room-line)'}" stroke-width="2" stroke-linejoin="round"/></svg>`;
+function badgesHTML(){
+  return `<h3 class="sec">Ženkliukai</h3><div class="badges">${Object.keys(BADGES).map(k=>{
+    const on=store.badges.includes(k);
+    return `<div class="badge ${on?'on':''}" title="${BADGES[k][1]}"><svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="24" fill="${on?'#f5b400':'var(--room)'}" stroke="${on?'#d89a00':'var(--room-line)'}" stroke-width="3"/><g transform="translate(15 15) scale(1)"><path d="${starPath}" fill="${on?'#fff':'none'}" stroke="${on?'#fff':'var(--room-line)'}" stroke-width="2" stroke-linejoin="round"/></g></svg><b>${BADGES[k][0]}</b><small>${BADGES[k][1]}</small></div>`}).join('')}</div>`;
+}
+
+/* ---------- map ---------- */
+const icons={
+  food:(g,x,y)=>{el('path',{d:`M${x-12},${y-12}v10a4,4 0 0 0 8,0v-10M${x-8},${y-12}v26M${x+10},${y-12}c-6,2 -6,12 0,14v10`,class:'ic'},g)},
+  lib:(g,x,y)=>{el('path',{d:`M${x},${y-10}c-5,-4 -12,-4 -16,-2v22c4,-2 11,-2 16,2c5,-4 12,-4 16,-2v-22c-4,-2 -11,-2 -16,2zM${x},${y-10}v22`,class:'ic'},g)},
+  hall:(g,x,y)=>{el('path',{d:`M${x},${y-14}l4,9 10,1 -7.5,7 2,10 -8.5,-5 -8.5,5 2,-10 -7.5,-7 10,-1z`,class:'ic'},g)},
+  wc:(g,x,y)=>{el('circle',{cx:x-8,cy:y-10,r:3,class:'ic'},g);el('circle',{cx:x+8,cy:y-10,r:3,class:'ic'},g);el('path',{d:`M${x-8},${y-5}v12M${x-12},${y-5}h8M${x+8},${y-5}l-5,12h10z`,class:'ic'},g)}
+};
+
+// path points for the floor currently shown, or null
+function routePts(fl){
+  const A=route.from,B=route.to;if(!B)return null;
+  if(!A){return B.floor===fl?[[fl===1?X0+12:STAIRS_X,CY],[B.cx,CY],[B.cx,B.door]]:null}
+  if(A.floor===B.floor){return fl===A.floor?[[A.cx,A.door],[A.cx,CY],[B.cx,CY],[B.cx,B.door]]:null}
+  if(fl===A.floor)return [[A.cx,A.door],[A.cx,CY],[STAIRS_X,CY]];
+  if(fl===B.floor)return [[STAIRS_X,CY],[B.cx,CY],[B.cx,B.door]];
+  return null;
+}
+// distance in metres (map px * 0.12) and seconds at ~1.2 m/s
+function dist(a,b){
+  if(a.floor===b.floor)return Math.abs(a.cx-b.cx)*0.12+8;
+  return ((STAIRS_X-a.cx)+(STAIRS_X-b.cx))*0.12+8+Math.abs(a.floor-b.floor)*14;
+}
+const secsOf=m=>Math.max(5,Math.round(m/1.2));
+const entrance=f=>({floor:f,cx:f===1?X0+12:STAIRS_X});
+
+function draw(){
+  const svg=$('#svg');svg.innerHTML='';
+  el('rect',{x:0,y:170,width:800,height:60,class:'corr'},svg);
+  el('line',{x1:0,y1:200,x2:800,y2:200,stroke:'var(--room-line)','stroke-width':2,'stroke-dasharray':'10 10',opacity:.6},svg);
+  el('rect',{x:710,y:172,width:70,height:56,rx:10,fill:'none',stroke:'var(--room-line)','stroke-width':2,'stroke-dasharray':'5 4'},svg);
+  [0,1,2,3].forEach(i=>el('path',{d:`M${722+i*14},${218-i*7}h14`,stroke:'var(--room-line)','stroke-width':3,'stroke-linecap':'round'},svg));
+  const showRoute=mode==='find'||mode==='sched';
+  rooms.filter(r=>r.floor===floor).forEach((r,i)=>{
+    const cls=['rm','k-'+r.kind];
+    if(r.cat)cls.push('c-'+r.cat);
+    if(showRoute&&route.to&&route.to.id===r.id)cls.push('sel');
+    if(mode==='sched'&&route.from&&route.from.id===r.id)cls.push('from');
+    if(mode==='game'&&game.ok===r.id)cls.push('ok');
+    const g=el('g',{class:cls.join(' '),tabindex:0,role:'button','aria-label':r.name},svg);
+    g.style.animationDelay=(i*35)+'ms';
+    el('rect',{class:'bg',x:r.x+2,y:r.y,width:r.w-4,height:r.h,rx:14},g);
+    el('rect',{x:r.cx-16,y:r.door-(r.side==='top'?5:1),width:32,height:6,rx:3,fill:'var(--surface)',stroke:'var(--room-line)','stroke-width':2},g);
+    if(store.favs.includes(r.id)){el('path',{d:starPath,transform:`translate(${r.x+r.w-30} ${r.y+8}) scale(.9)`,fill:'#f5b400',stroke:'#d89a00','stroke-width':1.5},g)}
+    const cx=r.cx;
+    if(icons[r.kind])icons[r.kind](g,cx,r.y+r.h/2-22);
+    const ic=!!icons[r.kind],cyy=r.y+r.h/2,n=ic?0:1+(r.subject?1:0)+(r.teacher?1:0);
+    const ys=ic?[cyy+24]:n===3?[cyy-8,cyy+14,cyy+34]:n===2?[cyy,cyy+24]:[cyy+6];
+    const t=el('text',{x:cx,y:ys[0]},g);t.textContent=r.label;
+    let k=1;
+    if(!ic&&r.subject){const s=el('text',{x:cx,y:ys[k++],class:'sub'},g);s.textContent=r.subject}
+    if(!ic&&r.teacher){const s=el('text',{x:cx,y:ys[k++],class:'tch'},g);s.textContent=r.teacher}
+    const act=()=>onRoom(r,g);
+    g.addEventListener('click',act);
+    g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}});
+  });
+  const pts=showRoute?routePts(floor):null;
+  const start=pts?pts[0]:[floor===1?X0+12:STAIRS_X,CY];
+  if(pts){
+    const d='M'+pts.map(p=>p.join(',')).join(' L');
+    el('path',{d,class:'path'},svg);
+    if(!reduce){
+      let len=0;for(let i=1;i<pts.length;i++)len+=Math.abs(pts[i][0]-pts[i-1][0])+Math.abs(pts[i][1]-pts[i-1][1]);
+      const w=el('circle',{r:9,class:'walker'},svg);
+      el('animateMotion',{path:d,dur:(len/110).toFixed(1)+'s',repeatCount:'indefinite'},w);
+    }
+  }
+  el('circle',{cx:start[0],cy:start[1],r:18,class:'pinring'},svg);
+  el('circle',{cx:start[0],cy:start[1],r:9,class:'pin'},svg);
+  const atStairs=start[0]===STAIRS_X;
+  const l=el('text',{x:start[0]+(atStairs?0:14),y:CY-17,class:'lbl','text-anchor':atStairs?'middle':'start'},svg);
+  l.textContent=route.from&&mode==='sched'?'Pradžia':(floor===1&&!atStairs?'Įėjimas':'Tu čia');
+  if(!pts&&mode==='sched'&&route.to){ /* route is on another floor */ }
+}
+
+function tabs(){
+  const t=$('#tabs');t.innerHTML='';
+  [1,2,3].forEach(f=>{
+    const b=document.createElement('button');b.className='tab';b.setAttribute('role','tab');
+    b.textContent=f+' aukštas';b.setAttribute('aria-selected',f===floor);
+    b.onclick=()=>{floor=f;render()};t.appendChild(b);
+  });
+}
+
+/* ---------- favourites ---------- */
+function toggleFav(r){
+  const i=store.favs.indexOf(r.id);
+  if(i>=0)store.favs.splice(i,1);else{store.favs.push(r.id);award('fan')}
+  save();renderChips();render();
+}
+function renderChips(){
+  const box=$('#chips');box.innerHTML='';
+  const defaults=['Valgykla','Biblioteka','Tualetai','Raštinė','Aktų salė'].map(n=>rooms.find(r=>r.name===n));
+  const list=[...store.favs.map(byId),...defaults.filter(r=>!store.favs.includes(r.id))].slice(0,8);
+  list.forEach(r=>{
+    const b=document.createElement('button');b.className='chip';
+    b.innerHTML=(store.favs.includes(r.id)?star(true,13)+' ':'')+r.name.replace(' kabinetas','');
+    b.onclick=()=>choose(r);box.appendChild(b);
+  });
+}
+
+/* ---------- cards ---------- */
+function card(){
+  const c=$('#card');
+  ({find:findCard,sched:schedCard,game:gameCard,qr:qrCard})[mode](c);
+  const t=sayText();if(t)c.insertAdjacentHTML('afterbegin',`<div class="say"><span class="mini">${pinSvg()}</span><p>${t}</p></div>`);
+}
+function sayText(){
+  if(mode==='find')return route.to?'Eime kartu! Sek paskui raudoną tašką.':'Pasakyk, kur eini, ir parodysiu kelią.';
+  if(mode==='sched')return 'Surašyk pamokas, o aš suskaičiuosiu, ar spėsi per pertrauką.';
+  if(mode==='game'){if(game.state==='menu')return 'Pasiruošęs? Spėk greičiau už laikmatį!';if(game.state==='end')return game.passed?'Valio! Tu tikras tyrinėtojas!':'Nieko tokio, pabandyk dar kartą!';return 'Žiūrėk atidžiai, tu gali!'}
+  return '';
+}
+
+function findCard(c){
+  const sel=route.to;
+  if(!sel){c.innerHTML='<div class="where">Pradėk čia</div><h2>Kur eini?</h2><p>Įrašyk kabineto numerį, paspausk greitą mygtuką ar pačią patalpą plane. Parodysiu kelią nuo įėjimo.</p>';return}
+  const m=dist(entrance(sel.floor),sel);
+  const right=sel.cx>(sel.floor===1?X0+12:STAIRS_X);
+  const hand=(sel.side==='top')===right?'kairėje':'dešinėje';
+  const steps=[sel.floor===1?'Įeik pro pagrindinį įėjimą.':`Pakilk laiptais į ${sel.floor} aukštą.`,`Eik koridoriumi ${right?'dešinėn':'kairėn'}.`,`${sel.name} bus ${hand} pusėje. Rask pažymėtą patalpą.`];
+  const fav=store.favs.includes(sel.id);
+  c.innerHTML=`<div class="where">${sel.floor} aukštas</div><h2>${sel.name}</h2>${(sel.subject||sel.teacher)?`<p class="subj">${[sel.subject,sel.teacher].filter(Boolean).join(' · ')}</p>`:''}
+  <div class="stats"><div class="stat"><small>Žingsniai</small>~${Math.round(m/0.55)}</div><div class="stat"><small>Kelias</small>~${secsOf(m)} s</div></div>
+  <ol class="steps">${steps.map(s=>`<li><span>${s}</span></li>`).join('')}</ol>
+  <button class="favbtn" id="fav" aria-pressed="${fav}">${star(fav,20)}<span>${fav?'Mėgstamiausia vieta':'Pridėti prie mėgstamiausių'}</span></button>`;
+  $('#fav').onclick=()=>toggleFav(sel);
+}
+
+/* schedule */
+function schedCard(c){
+  const opts=['<option value="">Pasirink kabinetą</option>',...[1,2,3].map(f=>`<optgroup label="${f} aukštas">${classRooms.filter(r=>r.floor===f).map(r=>`<option value="${r.id}">${r.name}${r.subject?' · '+r.subject:''}${r.teacher?' · '+r.teacher:''}</option>`).join('')}</optgroup>`)].join('');
+  let h='<div class="where">Mano diena</div><h2>Tvarkaraštis</h2><p>Pasirink, kuriame kabinete kiekviena pamoka. Parodysiu kelią nuo vienos pamokos iki kitos.</p><div class="sched">';
+  for(let i=0;i<6;i++){
+    const a=byId(store.sched[i-1]),b=byId(store.sched[i]);
+    if(i>0&&a&&b){
+      const s=secsOf(dist(a,b));
+      h+=`<button class="leg" data-i="${i}"><span>${i} → ${i+1} pamoka</span><span>~${s} s · Rodyti kelią</span></button>`;
+    }
+    h+=`<label class="lesson"><span>${i+1} pamoka</span><select id="l${i}" aria-label="${i+1} pamoka">${opts}</select></label>`;
+  }
+  c.innerHTML=h+'</div>';
+  for(let i=0;i<6;i++){
+    const s=$('#l'+i);s.value=store.sched[i]||'';
+    s.onchange=()=>{store.sched[i]=s.value;save();if(store.sched.filter(Boolean).length>=5)award('planner');route={from:null,to:null};render()};
+  }
+  c.querySelectorAll('.leg').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i;route={from:byId(store.sched[i-1]),to:byId(store.sched[i])};
+    floor=route.from.floor;render();$('#svg').scrollIntoView({block:'center',behavior:reduce?'auto':'smooth'});
+  });
+  if(route.from&&route.to){
+    const A=route.from,B=route.to,cross=A.floor!==B.floor;
+    const note=document.createElement('p');note.className='msg-note';
+    note.textContent=cross?`Eik nuo ${A.name} (${A.floor} aukštas) iki laiptų, tada į ${B.floor} aukštą iki ${B.name}. Perjunk aukštą, kad pamatytum visą kelią.`:`Nuo ${A.name} iki ${B.name} eik koridoriumi pažymėta linija.`;
+    c.appendChild(note);
+  }
+}
+
+/* game */
+const LEVELS=[
+  {n:'Naujokas',rounds:5,secs:25,floors:[1]},
+  {n:'Tyrinėtojas',rounds:6,secs:18,floors:[1,2]},
+  {n:'Žvalgas',rounds:8,secs:12,floors:[1,2,3]}
+];
+const game={lvl:0,round:0,stars:0,target:null,wrong:0,state:'menu',ok:null,t0:0,tick:null,token:0,msg:'',msgc:''};
+function stopTimer(){clearInterval(game.tick);game.token++}
+function startLevel(i){
+  game.lvl=i;game.round=0;game.stars=0;game.state='play';newRound();
+}
+function newRound(){
+  const L=LEVELS[game.lvl],pool=classRooms.filter(r=>L.floors.includes(r.floor));
+  let t;do{t=pool[Math.floor(Math.random()*pool.length)]}while(game.target&&pool.length>1&&t.id===game.target.id);
+  game.target=t;game.wrong=0;game.ok=null;game.msg='';game.msgc='';
+  floor=1;stopTimer();game.t0=Date.now();
+  const tok=game.token;
+  game.tick=setInterval(()=>{
+    if(tok!==game.token)return;
+    const left=L.secs-(Date.now()-game.t0)/1000;
+    const bar=$('#tbar'),num=$('#tnum');
+    if(bar)bar.style.width=Math.max(0,left/L.secs*100)+'%';
+    if(num)num.textContent=Math.max(0,Math.ceil(left));
+    if(bar&&left<=L.secs*.3)bar.classList.add('low');
+    if(left<=0)timeUp();
+  },100);
+  render();
+}
+function timeUp(){
+  stopTimer();game.ok=game.target.id;game.msg='Laikas baigėsi! Tai buvo '+game.target.name+'.';game.msgc='bad';
+  floor=game.target.floor;render();setTimeout(next,1900);
+}
+function next(){
+  if(mode!=='game'||game.state!=='play')return;
+  game.round++;
+  if(game.round>=LEVELS[game.lvl].rounds)finish();else newRound();
+}
+function finish(){
+  stopTimer();const L=LEVELS[game.lvl];game.state='end';
+  game.passed=game.stars>=Math.ceil(L.rounds*.6);
+  store.best[game.lvl]=Math.max(store.best[game.lvl]||0,game.stars);
+  if(game.passed){
+    store.unlocked=Math.max(store.unlocked,Math.min(game.lvl+2,LEVELS.length));
+    if(game.lvl===0)award('first');
+    if(game.lvl===2)award('scout');
+  }
+  if(game.passed)confetti(innerWidth/2,innerHeight/3,44);
+  if(game.stars===L.rounds)award('perfect');
+  save();render();
+}
+function gameCard(c){
+  const L=LEVELS[game.lvl];
+  if(game.state==='menu'){
+    c.innerHTML=`<div class="where">Žaidimas</div><h2>Rask kabinetą greičiau!</h2><p>Aš pasakysiu kabinetą, o tu paspausk jį plane, kol nesibaigė laikas. Praeik lygį ir atrakink kitą.</p>
+    <div class="lvls">${LEVELS.map((l,i)=>{const lock=i+1>store.unlocked,b=store.best[i]||0;
+      return `<button class="lvl" data-i="${i}" ${lock?'disabled':''}><b>${i+1} lygis · ${l.n}</b><span>${l.rounds} užduotys, po ${l.secs} s</span><span class="lstars">${lock?'Užrakinta':Array.from({length:l.rounds},(_,k)=>star(k<b,14)).join('')}</span></button>`}).join('')}</div>${badgesHTML()}`;
+    c.querySelectorAll('.lvl').forEach(b=>b.onclick=()=>startLevel(+b.dataset.i));return;
+  }
+  if(game.state==='end'){
+    c.innerHTML=`<div class="where">${game.lvl+1} lygis · ${L.n}</div><h2>${game.stars===L.rounds?'Puikiai!':game.passed?'Šaunuolis!':'Beveik pavyko!'}</h2>
+    <div class="starsrow">${Array.from({length:L.rounds},(_,i)=>star(i<game.stars)).join('')}</div>
+    <p>${game.passed?(game.lvl<LEVELS.length-1?'Kitas lygis atrakintas.':'Įveikei visus lygius!'):`Reikia bent ${Math.ceil(L.rounds*.6)} žvaigždučių, kad atrakintum kitą lygį.`}</p>
+    <div class="row"><button class="btn" id="again">Žaisti dar kartą</button><button class="btn ghost" id="menu">Lygiai</button></div>${badgesHTML()}`;
+    $('#again').onclick=()=>startLevel(game.lvl);$('#menu').onclick=()=>{game.state='menu';render()};return;
+  }
+  const left=Math.max(0,L.secs-(Date.now()-game.t0)/1000);
+  c.innerHTML=`<div class="where">${game.lvl+1} lygis · užduotis ${game.round+1} iš ${L.rounds}</div><h2>Rask: ${game.target.name}</h2>
+  <div class="timer"><div class="tbar"><i id="tbar" style="width:${left/L.secs*100}%"></i></div><b id="tnum">${Math.ceil(left)}</b><span>s</span></div>
+  <div class="starsrow">${Array.from({length:L.rounds},(_,i)=>star(i<game.stars,22)).join('')}</div>
+  <div class="msg ${game.msgc}">${game.msg}</div>${game.wrong>=2&&!game.ok?`<p>Užuomina: ieškok ${game.target.floor} aukšte.</p>`:''}`;
+}
+
+/* QR */
+// The QR code points to wherever this page is hosted.
+const APP_URL=/^https?:/.test(location.href)?location.href.split('#')[0]:'https://example.com/';
+function qrCard(c){
+  c.innerHTML=`<div class="qrbox" id="qr" role="img" aria-label="QR kodas"></div>`;
+  const make=()=>{
+    const box=$('#qr');
+    try{const qr=qrcode(0,'M');qr.addData(APP_URL);qr.make();box.innerHTML=qr.createSvgTag({cellSize:6,margin:0,scalable:true})}
+    catch(e){box.textContent='Nepavyko sukurti QR kodo. Patikrink nuorodą.'}
+  };
+  make();
+}
+
+/* ---------- interaction ---------- */
+function onRoom(r,g){
+  if(mode==='find'||mode==='sched'){if(mode==='sched'){setMode('find')}choose(r);return}
+  if(mode!=='game'||game.state!=='play'||game.ok)return;
+  if(r.id===game.target.id){
+    const el_=(Date.now()-game.t0)/1000;
+    if(game.wrong===0)game.stars++;
+    if(el_<4)award('blitz');
+    const bb=g.getBoundingClientRect();confetti(bb.left+bb.width/2,bb.top+bb.height/2,18);
+    stopTimer();game.ok=r.id;game.msg='Teisingai!';game.msgc='good';render();
+    setTimeout(next,1100);
+  }else{
+    game.wrong++;game.msg='Dar ne. Bandyk kitą!';game.msgc='bad';
+    g.classList.add('bad');setTimeout(()=>g.classList.remove('bad'),450);
+    if(game.wrong===2)card();else{const m=$('#card .msg');if(m){m.textContent=game.msg;m.className='msg bad'}}
+  }
+}
+function render(){tabs();draw();card();$('#plan').hidden=mode==='qr'}
+function choose(r){mode='find';sync();route={from:null,to:r};floor=r.floor;$('#results').hidden=true;$('#q').value=r.name;render()}
+function sync(){['find','sched','game','qr'].forEach(m=>$('#m-'+m).setAttribute('aria-pressed',mode===m))}
+function setMode(m){
+  if(mode==='game'&&m!=='game'){stopTimer();game.state='menu'}
+  mode=m;sync();
+  if(m==='find')route={from:null,to:route.to};
+  if(m==='sched')route={from:null,to:null};
+  render();
+}
+['find','sched','game','qr'].forEach(m=>$('#m-'+m).onclick=()=>setMode(m));
+
+const q=$('#q'),res=$('#results');
+q.addEventListener('input',()=>{
+  const v=q.value.trim().toLowerCase();res.innerHTML='';
+  if(!v){res.hidden=true;return}
+  const hits=rooms.filter(r=>r.kw.includes(v)).slice(0,8);
+  if(!hits.length)res.innerHTML='<div class="res"><span>Nieko nerasta</span></div>';
+  hits.forEach(r=>{const b=document.createElement('button');b.className='res';b.innerHTML=`<span>${r.name}${r.subject?' · '+r.subject:''}${r.teacher?' · '+r.teacher:''}</span><small>${r.floor} aukštas</small>`;b.onclick=()=>choose(r);res.appendChild(b)});
+  res.hidden=false;
+});
+document.addEventListener('click',e=>{if(!e.target.closest('.search'))res.hidden=true});
+
+function pinSvg(){return `<svg viewBox="0 0 80 88" aria-hidden="true"><ellipse cx="40" cy="84" rx="16" ry="3.5" fill="rgba(0,0,0,.18)"/><path d="M40 4C22 4 10 17 10 33c0 20 30 48 30 48s30-28 30-48C70 17 58 4 40 4z" fill="#dc3741" stroke="#fff" stroke-width="3"/><circle cx="40" cy="32" r="12" fill="#fff"/></svg>`}
+function confetti(x,y,n){
+  if(reduce)return;
+  const cols=['#dc3741','#236fd2','#f5b400','#1f9d6b','#ffffff'];
+  for(let i=0;i<n;i++){
+    const s=document.createElement('i');s.className='conf';
+    s.style.cssText=`left:${x}px;top:${y}px;background:${cols[i%5]}`;
+    document.body.appendChild(s);
+    const a=Math.random()*Math.PI*2,d=60+Math.random()*130;
+    s.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${Math.cos(a)*d}px,${Math.sin(a)*d+60}px) rotate(${Math.random()*540}deg)`,opacity:0}],{duration:900+Math.random()*500,easing:'cubic-bezier(.15,.7,.3,1)'}).onfinish=()=>s.remove();
+  }
+}
+function greet(){const h=new Date().getHours();$('#greet').textContent=(h<11?'Labas rytas!':h<18?'Laba diena!':'Labas vakaras!')+' Kur eini šiandien?'}
+function updateRank(){const n=store.badges.length,t=n>=5?'Mokyklos žinovas':n>=3?'Žvalgas':n>=1?'Tyrinėtojas':'Naujokas';$('#rank').innerHTML=star(true,14)+`<span>Rangas: ${t} · ${n}/6</span>`}
+
+route={from:null,to:rooms.find(r=>r.name==='Valgykla')};
+$('#mascot').innerHTML=pinSvg();greet();updateRank();
+renderChips();render();
+</script>
+
+</body>
+</html>
